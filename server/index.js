@@ -1,93 +1,84 @@
 const express = require("express");
-const mysql = require("mysql2");
 const cors = require("cors");
+const { Pool } = require("pg");
 
 const app = express();
 
-// Middleware
 app.use(cors());
-
 app.use(express.json());
 
-// Database Connection
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "baby_typewriting",
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
-db.connect((err) => {
-  if (err) {
-    console.error("❌ Database Error:", err);
-    return;
-  }
-
-  console.log("✅ MySQL Connected");
-});
-
-// Test Route
 app.get("/", (req, res) => {
   res.send("Baby Typewriting API Running");
 });
 
-// Admission Form API
-app.post("/admission", (req, res) => {
-  console.log("Request received:", req.body);
+app.post("/admission", async (req, res) => {
+  try {
+    const {
+      student_name,
+      mobile,
+      email,
+      course,
+      address,
+    } = req.body;
 
-  const {
-    student_name,
-    mobile,
-    email,
-    course,
-    address,
-  } = req.body;
+    const result = await pool.query(
+      `
+      INSERT INTO admissions
+      (student_name, mobile, email, course, address)
+      VALUES ($1,$2,$3,$4,$5)
+      RETURNING *
+      `,
+      [
+        student_name,
+        mobile,
+        email,
+        course,
+        address,
+      ]
+    );
 
-  const sql = `
-    INSERT INTO admissions
-    (student_name, mobile, email, course, address)
-    VALUES (?, ?, ?, ?, ?)
-  `;
+    res.json({
+      success: true,
+      data: result.rows[0],
+    });
 
-  db.query(
-    sql,
-    [student_name, mobile, email, course, address],
-    (err, result) => {
-      if (err) {
-        console.error("❌ SQL Error:", err);
+  } catch (err) {
+    console.error(err);
 
-        return res.status(500).json({
-          success: false,
-          error: err.message,
-        });
-      }
-
-      console.log("✅ Admission Saved Successfully");
-
-      res.json({
-        success: true,
-        message: "Admission Saved Successfully",
-      });
-    }
-  );
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
 });
 
-// Get All Admissions
-app.get("/admissions", (req, res) => {
-  const sql = "SELECT * FROM admissions ORDER BY id DESC";
+app.get("/admissions", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM admissions ORDER BY id DESC"
+    );
 
-  db.query(sql, (err, result) => {
-    if (err) {
-      return res.status(500).json(err);
-    }
+    res.json(result.rows);
 
-    res.json(result);
-  });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
 });
 
+const PORT = process.env.PORT || 5001;
 
-
-// Start Server
-app.listen(5001, () => {
-  console.log("🚀 Server running on port 5001");
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
