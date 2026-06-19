@@ -22,7 +22,7 @@ function Contact() {
 
     try {
       await axios.post(
-        "http://localhost:5001/admission",
+        "https://baby-typewriting-api.onrender.com/admission",
         formData
       );
 
