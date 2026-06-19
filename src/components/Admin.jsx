@@ -26,20 +26,42 @@ function Admin() {
     }
   };
 
+  const deleteAdmission = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this admission?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await axios.delete(
+        `https://baby-typewriting-api.onrender.com/admission/${id}`
+      );
+
+      alert("Admission deleted successfully");
+      fetchAdmissions();
+    } catch (err) {
+      console.log(err);
+      alert("Delete failed");
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("adminLoggedIn");
     navigate("/admin/login");
   };
 
   const exportToExcel = () => {
-    const excelData = admissions.map((student) => ({
-      ID: student.id,
+    const excelData = admissions.map((student, index) => ({
+      "S.No": index + 1,
       Name: student.student_name,
       Mobile: student.mobile,
       Email: student.email,
       Course: student.course,
       Address: student.address,
-      CreatedDate: student.created_at,
+      AdmissionDate: student.created_at
+        ? new Date(student.created_at).toLocaleDateString()
+        : "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
@@ -52,20 +74,14 @@ function Admin() {
       "Admissions"
     );
 
-    const excelBuffer = XLSX.write(
-      workbook,
-      {
-        bookType: "xlsx",
-        type: "array",
-      }
-    );
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
 
-    const data = new Blob(
-      [excelBuffer],
-      {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      }
-    );
+    const data = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
 
     saveAs(data, "Admissions.xlsx");
   };
@@ -104,6 +120,7 @@ function Admin() {
   return (
     <section className="max-w-7xl mx-auto py-10 px-6">
 
+      {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-4xl font-bold text-blue-900">
           Student Admissions
@@ -112,14 +129,14 @@ function Admin() {
         <div className="flex gap-3">
           <button
             onClick={exportToExcel}
-            className="bg-green-600 text-white px-4 py-2 rounded"
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
           >
             Export Excel
           </button>
 
           <button
             onClick={logout}
-            className="bg-red-600 text-white px-4 py-2 rounded"
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
           >
             Logout
           </button>
@@ -128,35 +145,38 @@ function Admin() {
 
       {/* Dashboard Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+
         <div className="bg-blue-900 text-white p-5 rounded-lg shadow">
-          <h3>Total Admissions</h3>
+          <h3 className="text-lg">Total Admissions</h3>
           <p className="text-3xl font-bold">
             {totalAdmissions}
           </p>
         </div>
 
         <div className="bg-green-600 text-white p-5 rounded-lg shadow">
-          <h3>Today's Entries</h3>
+          <h3 className="text-lg">Today's Entries</h3>
           <p className="text-3xl font-bold">
             {todayAdmissions}
           </p>
         </div>
 
         <div className="bg-purple-600 text-white p-5 rounded-lg shadow">
-          <h3>English Course</h3>
+          <h3 className="text-lg">English Course</h3>
           <p className="text-3xl font-bold">
             {englishAdmissions}
           </p>
         </div>
 
         <div className="bg-orange-600 text-white p-5 rounded-lg shadow">
-          <h3>Tamil Course</h3>
+          <h3 className="text-lg">Tamil Course</h3>
           <p className="text-3xl font-bold">
             {tamilAdmissions}
           </p>
         </div>
+
       </div>
 
+      {/* Search */}
       <div className="mb-4">
         <input
           type="text"
@@ -173,32 +193,71 @@ function Admin() {
         Total Results: {filteredAdmissions.length}
       </p>
 
+      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full border border-gray-300">
+
           <thead>
             <tr className="bg-blue-900 text-white">
-              <th className="p-3">ID</th>
+              <th className="p-3">S.No</th>
               <th className="p-3">Student Name</th>
               <th className="p-3">Mobile</th>
               <th className="p-3">Email</th>
               <th className="p-3">Course</th>
+              <th className="p-3">Admission Date</th>
+              <th className="p-3">Action</th>
             </tr>
           </thead>
 
           <tbody>
-            {filteredAdmissions.map((student) => (
+            {filteredAdmissions.map((student, index) => (
               <tr
                 key={student.id}
-                className="border-b"
+                className="border-b hover:bg-gray-50"
               >
-                <td className="p-3">{student.id}</td>
-                <td className="p-3">{student.student_name}</td>
-                <td className="p-3">{student.mobile}</td>
-                <td className="p-3">{student.email}</td>
-                <td className="p-3">{student.course}</td>
+                <td className="p-3">
+                  {index + 1}
+                </td>
+
+                <td className="p-3">
+                  {student.student_name}
+                </td>
+
+                <td className="p-3">
+                  {student.mobile}
+                </td>
+
+                <td className="p-3">
+                  {student.email}
+                </td>
+
+                <td className="p-3">
+                  {student.course}
+                </td>
+
+                <td className="p-3">
+                  {student.created_at
+                    ? new Date(
+                        student.created_at
+                      ).toLocaleDateString()
+                    : "-"}
+                </td>
+
+                <td className="p-3">
+                  <button
+                    onClick={() =>
+                      deleteAdmission(student.id)
+                    }
+                    className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                </td>
+
               </tr>
             ))}
           </tbody>
+
         </table>
       </div>
 
