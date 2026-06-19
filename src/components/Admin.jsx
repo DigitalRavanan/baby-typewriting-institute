@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 function Admin() {
   const [admissions, setAdmissions] = useState([]);
@@ -29,6 +31,45 @@ function Admin() {
     navigate("/admin/login");
   };
 
+  const exportToExcel = () => {
+    const excelData = admissions.map((student) => ({
+      ID: student.id,
+      Name: student.student_name,
+      Mobile: student.mobile,
+      Email: student.email,
+      Course: student.course,
+      Address: student.address,
+      CreatedDate: student.created_at,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Admissions"
+    );
+
+    const excelBuffer = XLSX.write(
+      workbook,
+      {
+        bookType: "xlsx",
+        type: "array",
+      }
+    );
+
+    const data = new Blob(
+      [excelBuffer],
+      {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }
+    );
+
+    saveAs(data, "Admissions.xlsx");
+  };
+
   // Dashboard Statistics
   const totalAdmissions = admissions.length;
 
@@ -52,7 +93,6 @@ function Admin() {
       student.course.toLowerCase().includes("tamil")
   ).length;
 
-  // Search Filter
   const filteredAdmissions = admissions.filter(
     (student) =>
       student.student_name
@@ -63,52 +103,60 @@ function Admin() {
 
   return (
     <section className="max-w-7xl mx-auto py-10 px-6">
-      {/* Header */}
+
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-4xl font-bold text-blue-900">
           Student Admissions
         </h2>
 
-        <button
-          onClick={logout}
-          className="bg-red-600 text-white px-4 py-2 rounded"
-        >
-          Logout
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={exportToExcel}
+            className="bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Export Excel
+          </button>
+
+          <button
+            onClick={logout}
+            className="bg-red-600 text-white px-4 py-2 rounded"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Dashboard Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-blue-900 text-white p-5 rounded-lg shadow">
-          <h3 className="text-lg">Total Admissions</h3>
+          <h3>Total Admissions</h3>
           <p className="text-3xl font-bold">
             {totalAdmissions}
           </p>
         </div>
 
         <div className="bg-green-600 text-white p-5 rounded-lg shadow">
-          <h3 className="text-lg">Today's Entries</h3>
+          <h3>Today's Entries</h3>
           <p className="text-3xl font-bold">
             {todayAdmissions}
           </p>
         </div>
 
         <div className="bg-purple-600 text-white p-5 rounded-lg shadow">
-          <h3 className="text-lg">English Course</h3>
+          <h3>English Course</h3>
           <p className="text-3xl font-bold">
             {englishAdmissions}
           </p>
         </div>
 
         <div className="bg-orange-600 text-white p-5 rounded-lg shadow">
-          <h3 className="text-lg">Tamil Course</h3>
+          <h3>Tamil Course</h3>
           <p className="text-3xl font-bold">
             {tamilAdmissions}
           </p>
         </div>
       </div>
 
-      {/* Search Box */}
       <div className="mb-4">
         <input
           type="text"
@@ -125,7 +173,6 @@ function Admin() {
         Total Results: {filteredAdmissions.length}
       </p>
 
-      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full border border-gray-300">
           <thead>
@@ -135,7 +182,6 @@ function Admin() {
               <th className="p-3">Mobile</th>
               <th className="p-3">Email</th>
               <th className="p-3">Course</th>
-              <th className="p-3">Created Date</th>
             </tr>
           </thead>
 
@@ -146,30 +192,16 @@ function Admin() {
                 className="border-b"
               >
                 <td className="p-3">{student.id}</td>
-                <td className="p-3">
-                  {student.student_name}
-                </td>
-                <td className="p-3">
-                  {student.mobile}
-                </td>
-                <td className="p-3">
-                  {student.email}
-                </td>
-                <td className="p-3">
-                  {student.course}
-                </td>
-                <td className="p-3">
-                  {student.created_at
-                    ? new Date(
-                        student.created_at
-                      ).toLocaleDateString()
-                    : "-"}
-                </td>
+                <td className="p-3">{student.student_name}</td>
+                <td className="p-3">{student.mobile}</td>
+                <td className="p-3">{student.email}</td>
+                <td className="p-3">{student.course}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
     </section>
   );
 }
